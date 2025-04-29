@@ -73,11 +73,16 @@ def build(build_type):
                 print(f"{file}: {'存在' if exists else '不存在'}")
         
         # 确保 yutto.exe 存在
-        yutto_exe = os.path.join('.venv', 'Scripts', 'yutto.exe')
-        if not os.path.exists(yutto_exe):
-            raise FileNotFoundError(f"找不到 yutto.exe: {yutto_exe}")
-
-        print(f"\n找到 yutto.exe: {yutto_exe}")
+        if os.name == 'nt':  # Windows
+            yutto_exe = os.path.join('.venv', 'Scripts', 'yutto.exe')
+            if not os.path.exists(yutto_exe):
+                raise FileNotFoundError(f"找不到 yutto.exe: {yutto_exe}")
+            print(f"\n找到 yutto.exe: {yutto_exe}")
+        else:  # Linux/macOS
+            yutto_exe = os.path.join('.venv', 'bin', 'yutto')
+            if not os.path.exists(yutto_exe):
+                raise FileNotFoundError(f"找不到 yutto: {yutto_exe}")
+            print(f"\n找到 yutto: {yutto_exe}")
         
         # 确定包管理工具 (uv或pip)
         use_uv = False
@@ -140,14 +145,17 @@ def build(build_type):
             print("\n未找到app.spec文件，正在创建...")
             
             try:
+                # 根据平台确定路径分隔符
+                path_sep = ';' if os.name == 'nt' else ':'
+                
                 makespec_cmd = [
                     python_exe, '-m', 'PyInstaller',
                     '--name=BilibiliHistoryAnalyzer',
-                    '--add-binary', f"{yutto_exe};.",
-                    '--add-data', "config/*;config", 
-                    '--add-data', "scripts;scripts",
-                    '--add-data', "routers;routers",
-                    '--add-data', "main.py;.",
+                    '--add-binary', f"{yutto_exe}{path_sep}.",
+                    '--add-data', f"config/*{path_sep}config", 
+                    '--add-data', f"scripts{path_sep}scripts",
+                    '--add-data', f"routers{path_sep}routers",
+                    '--add-data', f"main.py{path_sep}.",
                     '--paths', venv_site_packages,
                     'app_launcher.py'
                 ]

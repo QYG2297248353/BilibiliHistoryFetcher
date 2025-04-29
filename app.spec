@@ -52,6 +52,7 @@ a = Analysis(
         (os.path.join(venv_site_packages, 'psutil'), 'psutil'),
         (os.path.join(venv_site_packages, 'tqdm'), 'tqdm'),
         (os.path.join(venv_site_packages, 'email_validator'), 'email_validator'),
+        (os.path.join(venv_site_packages, 'loguru'), 'loguru'),
     ],
     hiddenimports=[
         'fastapi',
@@ -133,6 +134,7 @@ a = Analysis(
         'psutil',
         'tqdm',
         'email_validator',
+        'loguru',
         # 以下是fastapi和其他库的子模块
         'fastapi.applications',
         'fastapi.routing',

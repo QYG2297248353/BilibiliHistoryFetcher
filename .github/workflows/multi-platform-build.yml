@@ -74,6 +74,24 @@ jobs:
         .venv/bin/python build.py
       shell: bash
 
+    - name: 检查构建结果 (调试)
+      run: |
+        echo "当前目录内容："
+        ls -la
+        
+        echo "检查dist目录是否存在..."
+        if [ ! -d "./dist" ]; then
+          echo "警告: dist目录不存在，创建空目录"
+          mkdir -p ./dist
+        fi
+        
+        echo "dist目录内容："
+        ls -la ./dist/
+        
+        echo "检查可能的构建产物目录:"
+        find . -type d -name "*BilibiliHistory*" -o -name "*bili*" | grep -v "__pycache__"
+      shell: bash
+
     # 注意：yutto的复制已经在build.py脚本中处理，不需要额外步骤
 
     - name: 打包构建结果
