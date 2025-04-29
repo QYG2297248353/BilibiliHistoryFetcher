@@ -287,6 +287,31 @@ def create_spec(source_spec, target_spec, venv_site_packages=None):
         with open(source_spec, 'r', encoding='utf-8') as f:
             content = f.read()
         
+        # 处理不同平台的路径分隔符问题
+        if os.name != 'nt':  # 非Windows平台
+            # 将Windows路径分隔符(;)替换为Unix路径分隔符(:)
+            content = content.replace('config/*;config', 'config/*:config')
+            content = content.replace('scripts;scripts', 'scripts:scripts')
+            content = content.replace('routers;routers', 'routers:routers')
+            content = content.replace('main.py;.', 'main.py:.')
+            
+            # 处理yutto.exe的路径
+            content = content.replace('yutto.exe;.', 'yutto:.')
+            
+            # 特别针对yutto_exe路径进行处理，确保在非Windows平台上正确
+            if sys.platform.startswith('darwin'): # macOS
+                yutto_dir = os.path.join(os.getcwd(), '.venv', 'bin')
+                content = content.replace(
+                    "yutto_exe = os.path.join(os.getcwd(), '.venv', 'Scripts', 'yutto.exe')",
+                    f"yutto_exe = os.path.join(os.getcwd(), '.venv', 'bin', 'yutto')"
+                )
+            elif sys.platform.startswith('linux'):
+                yutto_dir = os.path.join(os.getcwd(), '.venv', 'bin')
+                content = content.replace(
+                    "yutto_exe = os.path.join(os.getcwd(), '.venv', 'Scripts', 'yutto.exe')",
+                    f"yutto_exe = os.path.join(os.getcwd(), '.venv', 'bin', 'yutto')"
+                )
+        
         # 添加虚拟环境路径到pathex
         if venv_site_packages and os.path.exists(venv_site_packages):
             if "pathex=" in content:
@@ -334,12 +359,37 @@ def run_pyinstaller(spec_file, python_exe=None):
         if not python_exe:
             python_exe = sys.executable
             
+        # 打印平台信息
+        print(f"\n=== 平台信息 ===")
+        print(f"操作系统: {sys.platform}")
+        print(f"Python版本: {sys.version}")
+        print(f"当前目录: {os.getcwd()}")
+        print(f"Python解释器: {python_exe}")
+        
+        # 验证spec文件
+        if not os.path.exists(spec_file):
+            print(f"\n错误: spec文件不存在: {spec_file}")
+            return False
+        
+        # 打印spec文件的前10行用于调试
+        print(f"\nspec文件前10行内容:")
+        with open(spec_file, 'r', encoding='utf-8') as f:
+            for i, line in enumerate(f.readlines()[:10]):
+                print(f"{i+1}: {line.strip()}")
+            
         print(f"\n运行命令: {python_exe} -m PyInstaller --clean --noconfirm {spec_file}\n")
         print("正在执行PyInstaller打包过程...这可能需要一些时间...")
         
+        # 确保PyInstaller命令适合当前平台
+        pyinstaller_cmd = [python_exe, '-m', 'PyInstaller', '--clean', '--noconfirm', spec_file]
+        
+        # 如果是macOS或Linux，添加--log-level=DEBUG以获取更多输出
+        if sys.platform != 'win32':
+            pyinstaller_cmd.insert(3, '--log-level=DEBUG')
+        
         # 使用subprocess.Popen实现实时输出
         process = subprocess.Popen(
-            [python_exe, '-m', 'PyInstaller', '--clean', '--noconfirm', spec_file],
+            pyinstaller_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             universal_newlines=True,
