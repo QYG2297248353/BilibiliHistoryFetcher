@@ -66,7 +66,7 @@ jobs:
       shell: bash
       
     - name: 上传构建产物
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: BilibiliHistoryFetcher-${{ matrix.os }}
         path: BilibiliHistoryFetcher-*.zip
