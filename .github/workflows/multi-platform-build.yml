@@ -32,6 +32,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller
+        pip install yutto
         
     - name: 创建logo文件
       run: |
@@ -44,16 +45,33 @@ jobs:
         
     - name: 构建Windows应用
       if: matrix.os == 'windows-latest'
-      run: python -m PyInstaller app.spec
+      run: |
+        python -m PyInstaller --name=BilibiliHistoryAnalyzer --onedir --add-data "config/*;config" --add-data "scripts;scripts" --add-data "routers;routers" app_launcher.py
         
     - name: 构建macOS应用
       if: matrix.os == 'macos-latest'
-      run: python -m PyInstaller app.spec
+      run: |
+        python -m PyInstaller --name=BilibiliHistoryAnalyzer --onedir --add-data "config/*:config" --add-data "scripts:scripts" --add-data "routers:routers" app_launcher.py
         
     - name: 构建Linux应用
       if: matrix.os == 'ubuntu-latest'
-      run: python -m PyInstaller app.spec
+      run: |
+        python -m PyInstaller --name=BilibiliHistoryAnalyzer --onedir --add-data "config/*:config" --add-data "scripts:scripts" --add-data "routers:routers" app_launcher.py
       
+    - name: 复制yutto到dist目录
+      run: |
+        if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          where yutto
+          cp $(where yutto) dist/BilibiliHistoryAnalyzer/ || echo "复制yutto失败，但继续执行"
+        elif [ "${{ matrix.os }}" == "macos-latest" ]; then
+          which yutto
+          cp $(which yutto) dist/BilibiliHistoryAnalyzer/ || echo "复制yutto失败，但继续执行"
+        else
+          which yutto
+          cp $(which yutto) dist/BilibiliHistoryAnalyzer/ || echo "复制yutto失败，但继续执行"
+        fi
+      shell: bash
+        
     - name: 打包构建结果
       run: |
         if [ "${{ matrix.os }}" == "windows-latest" ]; then
