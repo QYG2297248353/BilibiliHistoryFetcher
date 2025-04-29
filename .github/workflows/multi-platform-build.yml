@@ -79,11 +79,58 @@ jobs:
     - name: 打包构建结果
       run: |
         if [ "${{ matrix.os }}" == "windows-latest" ]; then
-          7z a -tzip BilibiliHistoryFetcher-windows.zip ./dist/BilibiliHistoryAnalyzer
+          # 检查目录是否存在
+          if [ -d "./dist/BilibiliHistoryAnalyzer" ]; then
+            7z a -tzip BilibiliHistoryFetcher-windows.zip ./dist/BilibiliHistoryAnalyzer
+          else
+            echo "查找可能的输出目录..."
+            find ./dist -type d -maxdepth 1 -print
+            # 使用找到的第一个目录
+            FIRST_DIR=$(find ./dist -type d -maxdepth 1 | grep -v "^./dist$" | head -1)
+            if [ ! -z "$FIRST_DIR" ]; then
+              echo "使用目录: $FIRST_DIR"
+              7z a -tzip BilibiliHistoryFetcher-windows.zip "$FIRST_DIR"
+            else
+              echo "错误: 找不到输出目录"
+              exit 1
+            fi
+          fi
         elif [ "${{ matrix.os }}" == "macos-latest" ]; then
-          cd dist && zip -r ../BilibiliHistoryFetcher-macos.zip BilibiliHistoryAnalyzer
+          # 检查目录是否存在
+          if [ -d "./dist/BilibiliHistoryAnalyzer" ]; then
+            cd dist && zip -r ../BilibiliHistoryFetcher-macos.zip BilibiliHistoryAnalyzer
+          else
+            echo "查找可能的输出目录..."
+            find ./dist -type d -maxdepth 1 -print
+            # 使用找到的第一个目录
+            FIRST_DIR=$(find ./dist -type d -maxdepth 1 | grep -v "^./dist$" | head -1)
+            if [ ! -z "$FIRST_DIR" ]; then
+              echo "使用目录: $FIRST_DIR"
+              DIR_NAME=$(basename "$FIRST_DIR")
+              cd dist && zip -r ../BilibiliHistoryFetcher-macos.zip "$DIR_NAME"
+            else
+              echo "错误: 找不到输出目录"
+              exit 1
+            fi
+          fi
         else
-          cd dist && zip -r ../BilibiliHistoryFetcher-linux.zip BilibiliHistoryAnalyzer
+          # 检查目录是否存在
+          if [ -d "./dist/BilibiliHistoryAnalyzer" ]; then
+            cd dist && zip -r ../BilibiliHistoryFetcher-linux.zip BilibiliHistoryAnalyzer
+          else
+            echo "查找可能的输出目录..."
+            find ./dist -type d -maxdepth 1 -print
+            # 使用找到的第一个目录
+            FIRST_DIR=$(find ./dist -type d -maxdepth 1 | grep -v "^./dist$" | head -1)
+            if [ ! -z "$FIRST_DIR" ]; then
+              echo "使用目录: $FIRST_DIR"
+              DIR_NAME=$(basename "$FIRST_DIR")
+              cd dist && zip -r ../BilibiliHistoryFetcher-linux.zip "$DIR_NAME"
+            else
+              echo "错误: 找不到输出目录"
+              exit 1
+            fi
+          fi
         fi
       shell: bash
 

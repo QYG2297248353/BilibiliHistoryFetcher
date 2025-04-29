@@ -3,6 +3,13 @@ import re
 import shutil
 import subprocess
 import sys
+import io
+import codecs
+
+# 设置标准输出编码为UTF-8，避免Windows环境中的编码问题
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 import yaml
 
