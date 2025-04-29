@@ -91,9 +91,86 @@ jobs:
         echo "检查可能的构建产物目录:"
         find . -type d -name "*BilibiliHistory*" -o -name "*bili*" | grep -v "__pycache__"
       shell: bash
-
-    # 注意：yutto的复制已经在build.py脚本中处理，不需要额外步骤
-
+      
+    - name: 创建构建验证报告
+      run: |
+        echo "# 构建验证报告 (${{ matrix.os }})" > build_report.md
+        echo "构建时间: $(date)" >> build_report.md
+        echo "" >> build_report.md
+        echo "## 系统信息" >> build_report.md
+        echo "- 操作系统: ${{ matrix.os }}" >> build_report.md
+        echo "- Python版本: ${{ matrix.python-version }}" >> build_report.md
+        echo "" >> build_report.md
+        
+        echo "## 构建产物" >> build_report.md
+        if [ -d "./dist" ]; then
+          echo "### dist目录内容:" >> build_report.md
+          echo '```' >> build_report.md
+          ls -la ./dist/ >> build_report.md
+          echo '```' >> build_report.md
+          
+          # 检查是否有实际构建产物
+          BUILD_DIRS=$(find ./dist -type d -mindepth 1 -maxdepth 1 | wc -l)
+          if [ "$BUILD_DIRS" -gt 0 ]; then
+            echo "✅ 发现构建产物目录" >> build_report.md
+            echo "" >> build_report.md
+            echo "### 构建产物目录结构:" >> build_report.md
+            echo '```' >> build_report.md
+            find ./dist -type d | sort >> build_report.md
+            echo '```' >> build_report.md
+            
+            # 检查二进制文件
+            MAIN_BIN=""
+            if [ "${{ matrix.os }}" == "windows-latest" ]; then
+              MAIN_BIN=$(find ./dist -name "BilibiliHistoryAnalyzer.exe" -o -name "*.exe" | head -1)
+            else
+              MAIN_BIN=$(find ./dist -name "BilibiliHistoryAnalyzer" -type f -executable | head -1)
+            fi
+            
+            if [ ! -z "$MAIN_BIN" ]; then
+              echo "✅ 发现主程序: $MAIN_BIN" >> build_report.md
+              echo "" >> build_report.md
+              
+              # 检查文件大小
+              echo "### 关键文件大小:" >> build_report.md
+              echo '```' >> build_report.md
+              if [ "${{ matrix.os }}" == "windows-latest" ]; then
+                find ./dist -name "*.exe" -o -name "*.dll" | xargs ls -lh 2>/dev/null >> build_report.md || echo "未找到相关文件" >> build_report.md
+              else
+                find ./dist -type f -executable | xargs ls -lh 2>/dev/null >> build_report.md || echo "未找到相关文件" >> build_report.md
+              fi
+              echo '```' >> build_report.md
+            else
+              echo "❌ 未找到主程序" >> build_report.md
+            fi
+          else
+            echo "❌ 未找到构建产物目录" >> build_report.md
+          fi
+        else
+          echo "❌ 未找到dist目录" >> build_report.md
+        fi
+        
+        echo "" >> build_report.md
+        echo "## 构建状态" >> build_report.md
+        if [ -d "./dist" ] && [ "$(find ./dist -type d -mindepth 1 -maxdepth 1 | wc -l)" -gt 0 ]; then
+          if [ -z "$(find ./dist -name "empty")" ]; then
+            echo "✅ 构建可能成功" >> build_report.md
+          else
+            echo "❌ 构建失败 (发现empty目录)" >> build_report.md
+          fi
+        else
+          echo "❌ 构建失败 (未找到构建产物)" >> build_report.md
+        fi
+        
+        cat build_report.md
+      shell: bash
+      
+    - name: 上传构建报告
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-report-${{ matrix.os }}
+        path: build_report.md
+        
     - name: 打包构建结果
       run: |
         echo "当前平台: ${{ matrix.os }}"
