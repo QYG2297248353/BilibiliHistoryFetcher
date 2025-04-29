@@ -94,6 +94,7 @@ jobs:
       
     - name: 创建构建验证报告
       run: |
+        # 创建简单版构建报告，确保在任何平台都能运行
         echo "# 构建验证报告 (${{ matrix.os }})" > build_report.md
         echo "构建时间: $(date)" >> build_report.md
         echo "" >> build_report.md
@@ -109,57 +110,47 @@ jobs:
           ls -la ./dist/ >> build_report.md
           echo '```' >> build_report.md
           
-          # 检查是否有实际构建产物
-          BUILD_DIRS=$(find ./dist -type d -mindepth 1 -maxdepth 1 | wc -l)
-          if [ "$BUILD_DIRS" -gt 0 ]; then
-            echo "✅ 发现构建产物目录" >> build_report.md
-            echo "" >> build_report.md
-            echo "### 构建产物目录结构:" >> build_report.md
-            echo '```' >> build_report.md
-            find ./dist -type d | sort >> build_report.md
-            echo '```' >> build_report.md
-            
-            # 检查二进制文件
-            MAIN_BIN=""
-            if [ "${{ matrix.os }}" == "windows-latest" ]; then
-              MAIN_BIN=$(find ./dist -name "BilibiliHistoryAnalyzer.exe" -o -name "*.exe" | head -1)
-            else
-              MAIN_BIN=$(find ./dist -name "BilibiliHistoryAnalyzer" -type f -executable | head -1)
-            fi
-            
-            if [ ! -z "$MAIN_BIN" ]; then
-              echo "✅ 发现主程序: $MAIN_BIN" >> build_report.md
-              echo "" >> build_report.md
-              
-              # 检查文件大小
-              echo "### 关键文件大小:" >> build_report.md
-              echo '```' >> build_report.md
-              if [ "${{ matrix.os }}" == "windows-latest" ]; then
-                find ./dist -name "*.exe" -o -name "*.dll" | xargs ls -lh 2>/dev/null >> build_report.md || echo "未找到相关文件" >> build_report.md
-              else
-                find ./dist -type f -executable | xargs ls -lh 2>/dev/null >> build_report.md || echo "未找到相关文件" >> build_report.md
-              fi
-              echo '```' >> build_report.md
-            else
-              echo "❌ 未找到主程序" >> build_report.md
-            fi
+          # 简单检查，使用ls和通配符列出可能的构建产物
+          echo "### 可能的产物文件:" >> build_report.md
+          echo '```' >> build_report.md
+          # 使用简单的ls列出文件
+          find ./dist -type d | sort >> build_report.md
+          echo "" >> build_report.md
+          
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            # Windows特定文件
+            ls -la ./dist/*.exe 2>/dev/null >> build_report.md || echo "未找到.exe文件" >> build_report.md
           else
-            echo "❌ 未找到构建产物目录" >> build_report.md
+            # 非Windows平台
+            ls -la ./dist/**/BilibiliHistoryAnalyzer* 2>/dev/null >> build_report.md || echo "未找到主程序文件" >> build_report.md
           fi
+          echo '```' >> build_report.md
+          
+          # 添加目录树信息
+          echo "### 目录结构:" >> build_report.md
+          echo '```' >> build_report.md
+          if [ "${{ matrix.os }}" == "macos-latest" ] || [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+            # macOS和Linux有ls -R命令
+            ls -R ./dist/ 2>/dev/null >> build_report.md || find ./dist -type f | sort >> build_report.md
+          else
+            # Windows可能没有ls -R
+            find ./dist -type f | sort >> build_report.md
+          fi
+          echo '```' >> build_report.md
         else
           echo "❌ 未找到dist目录" >> build_report.md
         fi
         
         echo "" >> build_report.md
         echo "## 构建状态" >> build_report.md
-        if [ -d "./dist" ] && [ "$(find ./dist -type d -mindepth 1 -maxdepth 1 | wc -l)" -gt 0 ]; then
-          if [ -z "$(find ./dist -name "empty")" ]; then
-            echo "✅ 构建可能成功" >> build_report.md
-          else
+        if [ -d "./dist" ] && [ "$(ls -la ./dist/ | wc -l)" -gt 3 ]; then
+          if [ -d "./dist/empty" ]; then
             echo "❌ 构建失败 (发现empty目录)" >> build_report.md
+          else
+            echo "✅ 构建可能成功" >> build_report.md
           fi
         else
-          echo "❌ 构建失败 (未找到构建产物)" >> build_report.md
+          echo "❌ 构建失败 (dist目录为空或不存在)" >> build_report.md
         fi
         
         cat build_report.md
