@@ -20,10 +20,10 @@ jobs:
 
     steps:
     - name: 检出代码
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: 设置Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
         
@@ -79,14 +79,14 @@ jobs:
     
     steps:
     - name: 下载所有构建产物
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       
     - name: 列出下载的文件
       run: find . -type f -name "*.zip"
       shell: bash
       
     - name: 创建GitHub发布
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: |
           ./BilibiliHistoryFetcher-windows-latest/BilibiliHistoryFetcher-windows.zip
