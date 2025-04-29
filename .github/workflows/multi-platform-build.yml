@@ -1,0 +1,102 @@
+name: 多平台构建
+
+on:
+  workflow_dispatch:  # 允许手动触发
+  push:
+    tags:
+      - 'v*'  # 在推送标签时触发，标签格式如 v1.0.0
+
+jobs:
+  build:
+    name: 构建 ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        python-version: ['3.10']
+
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v3
+    
+    - name: 设置Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: 安装依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+        
+    - name: 创建logo文件
+      run: |
+        if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          cp logo.png logo.ico || true
+        elif [ "${{ matrix.os }}" == "macos-latest" ]; then
+          cp logo.png logo.icns || true
+        fi
+      shell: bash
+        
+    - name: 构建Windows应用
+      if: matrix.os == 'windows-latest'
+      run: python -m PyInstaller app.spec
+        
+    - name: 构建macOS应用
+      if: matrix.os == 'macos-latest'
+      run: python -m PyInstaller app.spec
+        
+    - name: 构建Linux应用
+      if: matrix.os == 'ubuntu-latest'
+      run: python -m PyInstaller app.spec
+      
+    - name: 打包构建结果
+      run: |
+        if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          7z a -tzip BilibiliHistoryFetcher-windows.zip ./dist/BilibiliHistoryAnalyzer
+        elif [ "${{ matrix.os }}" == "macos-latest" ]; then
+          cd dist && zip -r ../BilibiliHistoryFetcher-macos.zip BilibiliHistoryAnalyzer
+        else
+          cd dist && zip -r ../BilibiliHistoryFetcher-linux.zip BilibiliHistoryAnalyzer
+        fi
+      shell: bash
+      
+    - name: 上传构建产物
+      uses: actions/upload-artifact@v3
+      with:
+        name: BilibiliHistoryFetcher-${{ matrix.os }}
+        path: BilibiliHistoryFetcher-*.zip
+        
+  release:
+    name: 创建发布
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: 下载所有构建产物
+      uses: actions/download-artifact@v3
+      
+    - name: 列出下载的文件
+      run: find . -type f -name "*.zip"
+      shell: bash
+      
+    - name: 创建GitHub发布
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ./BilibiliHistoryFetcher-windows-latest/BilibiliHistoryFetcher-windows.zip
+          ./BilibiliHistoryFetcher-macos-latest/BilibiliHistoryFetcher-macos.zip
+          ./BilibiliHistoryFetcher-ubuntu-latest/BilibiliHistoryFetcher-linux.zip
+        name: Release ${{ github.ref_name }}
+        body: |
+          BilibiliHistoryFetcher ${{ github.ref_name }} 发布
+          
+          ## 下载
+          - [Windows版](./BilibiliHistoryFetcher-windows.zip)
+          - [macOS版](./BilibiliHistoryFetcher-macos.zip)
+          - [Linux版](./BilibiliHistoryFetcher-linux.zip)
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
