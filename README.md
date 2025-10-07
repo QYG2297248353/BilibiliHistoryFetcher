@@ -27,12 +27,12 @@
 - [x] 年度总结
 - [x] 视频和图片下载
   - [x] 一键下载用户所有投稿视频
+- [x] 用户动态下载
 - [x] 自动化任务
 - [x] AI 摘要
 - [x] 获取用户评论
 - [x] 获取收藏夹
   - [x] 批量收藏
-  - [x] 修复失效视频
   - [x] 一键下载收藏夹所有视频
 - [x] 获取视频被全站观看的总时长
 
@@ -147,6 +147,49 @@ python main.py
 
 完整 API 文档访问：`http://localhost:8899/docs`
 
+## 数据迁移指南
+
+**核心结论：迁移时只需要拷贝整个 `output` 目录到新环境即可。**
+
+适用场景：同机路径迁移、跨机器迁移、Docker/Compose 部署、打包版/本地运行。
+
+步骤：
+- 停止正在运行的服务（本地进程或容器）。
+- 备份 `output` 整个文件夹（直接拷贝或压缩打包）。
+- 在新环境放置/挂载：
+  - 本地运行（uv/pip）：将 `output` 放到项目根目录下，使路径为 `./output`。
+  - Docker 运行：使用 `-v <本地output路径>:/app/output` 挂载；或在 `docker-compose.yml` 中将本地 `output` 目录映射到容器 `/app/output`。
+  - 打包版运行：将 `output` 放置在可执行文件同级目录的 `output` 文件夹中。
+- 启动服务并验证数据是否就绪（历史记录、统计与可视化应能正常展示）。
+
+注意：
+- 认证信息与运行配置位于 `config/`，不属于数据迁移范畴；新环境需按需填写 `config/config.yaml`（如 `SESSDATA` 等）。
+- Linux 环境请确保对 `output` 目录有读写权限（Docker 场景关注宿主机目录权限/属主）。
+
+## output 目录说明
+
+`output` 目录包含所有持久化数据与可再生成数据，迁移只需拷贝此目录：
+
+- `bilibili_history.db`：主历史记录数据库。
+- `video_details.db`：视频详情数据库。
+- `image_downloads.db`：图片下载记录数据库。
+- `database/`：业务分库集合（如 `bilibili_comments.db`、`bilibili_dynamic.db`、`bilibili_favorites.db`、`bilibili_popular_2025.db`、`bilibili_video_details.db`、`scheduler.db`）。
+- `history_by_date/YYYY/MM/DD.json`：按日期归档的观看历史快照。
+- `api_responses/`：原始 API 响应缓存（便于重放/排错）。
+- `analytics/` 与根目录下的 `daily_count_*.json`、`monthly_count_*.json`：统计汇总结果。
+- `summary/`、`BSummary/`：AI 摘要、提纲与结果文本/JSON。
+- `stt/`：语音转文字（Speech-to-Text）结果。
+- `download_video/`：已下载的视频内容及相关封面/海报等资源。
+- `images/`：用户头像、封面及孤立资源缓存。
+- `cache/image_proxy/`：图片代理缓存（可再生成）。
+- `comment/`：用户评论原始数据。
+- `dynamic/`：动态相关原始数据/缓存。
+- `logs/YYYY/MM/`：运行日志，便于排错与审计。
+- `state/sessdata_monitor.json`：会话状态监控信息（非敏感数据）。
+- `last_import.json`：最近一次导入/同步状态记录。
+- `heatmap_comparison.html`：热力图对比可视化产物。
+- `temp/`、`tmp_video/`：运行期临时文件（可清理）。
+
 ## 应用打包
 
 本项目提供了自动化打包脚本，可以将应用打包成独立的可执行文件，便于分发和部署。打包过程会自动处理依赖并清理敏感信息。
@@ -192,6 +235,34 @@ python build.py
 # Windows系统
 BilibiliHistoryAnalyzer.exe
 ```
+
+## 赞助与支持
+
+如果本项目对你有帮助，欢迎通过以下方式赞助。付款时请在备注中填写“希望公开展示的链接”（如个人主页、B 站空间、GitHub 仓库等），我们会在 README 的“赞助鸣谢”表格中展示。
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="./public/wechat.png" alt="微信收款码" width="220"><br>
+        微信赞助
+      </td>
+      <td align="center">
+        <img src="./public/zfb.jpg" alt="支付宝收款码" width="220"><br>
+        支付宝赞助
+      </td>
+    </tr>
+  </table>
+</div>
+
+### 赞助鸣谢
+
+| 联系内容                                              | 付款金额 |
+| ----------------------------------------------------- | -------- |
+| [星语半夏的个人空间-哔哩哔哩](https://b23.tv/WPHOtCS) | ￥15      |
+
+提示：已赞助但未收录，请在 Issues 提交凭证与备注链接；如需匿名可说明。
+
 
 ## 贡献指南
 
